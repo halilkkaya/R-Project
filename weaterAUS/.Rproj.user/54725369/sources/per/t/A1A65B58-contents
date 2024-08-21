@@ -1,0 +1,336 @@
+---
+output: html_document
+---
+
+```{r}
+read.csv("/weaterAUS.csv")
+```
+
+```{r echo=TRUE}
+# dplyr paketini aktif hale getirelim
+library(tidyverse)
+# Sadece tek bir konum icin analiz yapalim
+AlburyWeather <- weatherAUS %>% filter(Location=="Albury")
+View(AlburyWeather)
+# Analiz ve tahmin icin gerekli verilerimizi seciyoruz
+AlburyWeather <- AlburyWeather %>% select(Temp3pm,MinTemp,MaxTemp,Rainfall,WindSpeed3pm,Humidity3pm,Pressure3pm,Date)
+AlburyWeather
+```
+
+
+
+```{r echo=TRUE}
+# Eksik veri kontrolu yapalim
+library(mice)
+md.pattern(AlburyWeather)
+# Toplam 46 degerim NA geldi. 3011 veri icerisinde az oldugundan dolayi bunlari atabiliriz
+```
+
+
+```{r echo=TRUE}
+which(is.na(AlburyWeather))
+# NA olarak atanmis verilerimin Index numaralarina goz attim
+# Iki sekilde bu gozlemlerden kurtulabiliriz
+
+#Birinci Yontem
+index <- which(is.na(AlburyWeather))
+AlburyWeather[-index,]
+```
+
+
+```{r echo=TRUE}
+# Ikinci Yontem
+na.omit(AlburyWeather)
+# Bu yontemi kullanarak NA iceren tum satiri atiyoruz. Bu yontemi kullanalim
+AlburyWeather <- na.omit(AlburyWeather)
+head(AlburyWeather)
+```
+
+
+```{r echo=TRUE}
+AlburyWeather$Year <- format(as.Date(AlburyWeather$Date, format="%Y-%m-%d"), "%Y")
+# Veri setimizdeki tarih bolumune ek olarak Yil bolumu olusturduk
+years <- unique(AlburyWeather$Year)
+# Her bir yili tekil olarak ayarladik
+colors <- rainbow(length(years))
+# Her tekil yila renk atamasi yaptik
+AlburyWeather$Color <- colors[as.factor(AlburyWeather$Year)]
+# faktorlere gore renk atamasi yaptik
+AlburyWeather$Date <- as.Date(AlburyWeather$Date, format="%Y-%m-%d")
+# tarih degiskenimi date'e donusturme islemini gerceklestirdim
+
+havadurumu <- ggplot(AlburyWeather, aes(x = Date, y = Temp3pm, color = Year)) +
+  geom_point(size = 3) +  
+  labs(
+    title = "Tarihlere Gore Hava Durumu",
+    x = "Tarih",
+    y = "Hava Sicakligi (Saat 3)"
+  ) + theme_minimal() +  
+  theme(
+    legend.title = element_blank(), 
+    legend.text = element_text(size = 8), 
+    legend.key.size = unit(0.5, "cm")  
+  )
+print(havadurumu)
+
+# Grafigimizi olusturduk.
+# yillara gore renklendirilmis sekilde sicaklik degerlerimizi bu sekilde inceliyoruz
+
+```
+```{r echo=TRUE}
+plot(y=AlburyWeather$Temp3pm,x=AlburyWeather$Year, main =  "Tarihlere Gore Hava Durumu",
+      ylab = "Hava Sicakligi(Saat 3)",xlab = "Tarih",col = AlburyWeather$Color, pch = 19)
+# verilerimizin yillara gore sicaklik aralşklarini incelemek icin Year degiskenimizle bir plot cizdirdik
+```
+
+```{r echo=TRUE}
+library(GGally)
+# Albury sehrine ait verileri aciklayici olarak gorsellestiren bir fonksiyonumuz:
+ggpairs(AlburyWeather,columns = 1:7)
+# Corr degerlerimiz aralarindaki baglanti boyutunu ve yonunu belirliyor.
+```
+```{r echo=TRUE}
+MinMaxTemp <- ggplot(AlburyWeather, aes(x = MinTemp, y = MaxTemp, color = Year)) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", color = "black", linetype = "dashed") +
+  labs(
+    x = "Minimum Sicaklik",
+    y = "Maksimum Sicaklik",
+    title = "Sicaklik Karsilastirma Grafigi"
+  ) +
+  theme_minimal() 
+print(MinMaxTemp)
+# Minimum ve Maksimum degerlerinin birbiriyle iliskili sekilde nasil degistigini gosteren grafigimiz
+# lineer bir goruntu goruyroz. korelasyonlarimiz da fazla ve arti derecede cikmasini bekliyoruz
+# ayni zamanda linear model cizgisini de cizdirip goruntuluyoruz
+
+```
+```{r echo=TRUE}
+plot(AlburyWeather$Temp3pm~AlburyWeather$Rainfall,col = AlburyWeather$Color, pch = 19,
+     xlab = "Rainfall", ylab = "Sicaklik (saat3)", main ="Sicaklik Karsilastirma Grafigi")
+# verilerimizde bulunan ayriki degerler sebebiyle grafigimiz kotu bir sekilde cikti bu yuzden bir alt satirda bu
+# aykiri degerlerden kurtulup o sekilde tekrardan cizelim
+
+
+```
+```{r echo=TRUE}
+library(tidyverse)
+rainVStemp3 <- AlburyWeather %>% select(Rainfall,MinTemp,Year,Color) %>% filter(Rainfall<60)
+plot(rainVStemp3$MinTemp~rainVStemp3$Rainfall,col = AlburyWeather$Color, pch = 19,
+     xlab = "Rainfall", ylab = "Sicaklik (saat3)", main ="Sicaklik/Yagis Miktari Grafigi")
+# aralarindaki iliskiyi simdi daha guzel bir sekilde gorebiliyoruz
+  
+```
+
+```{r echo=TRUE}
+library(gifski)
+library(ggplot2)
+library(gganimate)
+p <- ggplot(AlburyWeather, aes(x = as.Date(Date), y = MaxTemp, color = Year)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Yillara Göre Maksimum Sicaklik", x = "Tarih", y = "Maksimum Sicaklik")
+animated_plot <- p + transition_time(as.numeric(Year)) +
+  labs(title = 'Yıl: {frame_time}')
+animate(animated_plot)
+anim_save("max_temp_animation.gif", animation = animated_plot)
+# burada yillara gore degisen sicakliklarin gif'ini cizdirdik ancak yorumlayicida cikmadi.
+# buraya ait gif goruntusunu proje icerisindeki klasorde bulabilirsiniz
+
+```
+
+```{r echo=TRUE}
+AlburyWeather$Year <- format(as.Date(AlburyWeather$Date), "%Y")
+AlburyWeather$Month <- format(as.Date(AlburyWeather$Date), "%m")
+AlburyWeather$YearMonth <- format(as.Date(AlburyWeather$Date), "%Y-%m")
+# aylara gore olan degisimin de grafiklerini hareketli hazirlamak icin bu sekilde ayirma islemleri gerceklestirdim.
+pAy <- ggplot(AlburyWeather, aes(x = Date, y = MaxTemp, color = YearMonth)) +
+  geom_line() +
+  theme_minimal() +
+  labs(title = "Aylara Göre Maksimum Sıcaklık", x = "Tarih", y = "Maksimum Sıcaklık",
+       theme(
+    legend.position = "right",  
+    legend.text = element_text(size = 8),  
+    legend.title = element_text(size = 10), 
+    legend.key.size = unit(0.5, "cm")))
+
+animated_plotAy <- pAy + transition_time(as.numeric(factor(YearMonth)))
+animate(animated_plotAy)
+anim_save("max_temp_animation_by_month.gif", animation = animated_plotAy)
+# bu sekilde aylara gore artis animasyonunu da kaydettim. yine bunu da proje dosyalarinda bulabilirsiniz
+
+```
+```{r echo=TRUE}
+tempHumi <- ggplot(AlburyWeather, aes(x = Temp3pm, y = Humidity3pm, color = Year)) +
+  geom_point(size = 3) +  # Noktaları gösterir
+  geom_smooth(method = "lm", color = "black", linetype = "dashed") +  # Regresyon doğrusunu ekler
+  labs(
+    x = "Sicaklik (Saat 3)",
+    y = "Nem Orani",
+    title = "Sicaklik/Nem Karsilastirmasi"
+  ) +
+  theme_minimal()  # Temayı sadeleştirir
+
+print(tempHumi)
+# saat 3 oldugunda sicaklik ve nem orani ne sekilde degisiklik gosterir bunu grafigini cizip bu sekilde yorumluyoruz
+# ayni zamanda dogrusal iliskiyi ifaden eden linear dogrumuzu da ciziyoruz
+
+```
+```{r echo=TRUE}
+library(tidyverse)
+# her bir ayın saat 3 oldugundaki sicaklik degerlerinin dagilisini kontrol edelim
+AlburyWeather %>% group_by(YearMonth) %>% summarise(shapiro.test(Temp3pm)$p.value)
+# hepsini tek tek inceledigimde normallik gosterdigini gorduk. ilk varsayim testimizi basariyla tamamladik
+```
+
+```{r echo=TRUE}
+t.test(AlburyWeather$Temp3pm[AlburyWeather$Year==2009],mu = 20,alternative = "two.sided",conf.level = 0.95)
+# H0: 2009 yilindaki hava sicakliklarinin ortalama degeri 20'dir 
+# Ha: 2009 yilindaki hava sicakliklarinin ortalama degeri 20 degildir
+# yillara gore sicaklik degerlerinin ortalamasini karsilastirmak icin onden bir alistirma yaptik
+# verilerimiz normallik gosterdigi icin t.test kullandik ancak iki degiskenli istatistik analizi icin
+# varyans homojenliklerini de kontrol etmemiz gerekecek.
+# p degerigimiz 0.05den kucuk geldigi icin %95 dogruluk oraninda 2009 yilina ait saat 3 sicaklik degerimizin ortalama degeri
+# 20'ye esit degildir diyoruz.
+```
+```{r echo=TRUE}
+bartlett.test(Temp3pm~Year, data = AlburyWeather[AlburyWeather$Year==c(2009,2010),])
+# H0: Varyans homojenligi gosteriyor
+# Ha: Varyans homojenligi gostermiyor
+# 2009 ve 2010 yillarindaki saat 3 sicaklik degerlerinin ortalama degerlerini karsilastirabilmek icin yaptigim varyans homojenlik testinde
+# p degerim 0.16 cikti. %95 dogruluk oraninda H0 kabul edildi
+# verilerimiz varyans homojenligi gosteriyor
+
+```
+```{r echo=TRUE}
+yil9 <- AlburyWeather[AlburyWeather$Year==2009,]
+yil10 <- AlburyWeather[AlburyWeather$Year==2010,]
+
+t.test(x = yil9$Temp3pm ,y = yil10$Temp3pm, alternative = "two.sided")
+# H0: 2009 ve 2010 yillari arasindaki saat 3e ait sicaklik degerlerimin ortalamalari aynidir
+# Ha: 2009 ve 2010 yillari arasindaki saat 3e ait sicaklik degerlerimin ortalamalari farklidir
+# %95 dogruluk oranin p degerim 0.05den kucuk ciktigindan dolayi H0 hipotezimi reddettim. ikisinin de ortalama degerleri farklidir
+```
+
+```{r echo=TRUE}
+bartlett.test(Temp3pm~Year, data = AlburyWeather[AlburyWeather$Year==c(2011,2012),])
+# H0: Varyans homojenligi gosteriyor
+# Ha: Varyans homojenligi gostermiyor
+# 2011 ve 2012 yillarindaki saat 3 sicaklik degerlerinin ortalama degerlerini karsilastirabilmek icin yaptigim varyans homojenlik testinde
+# p degerim 0.80 cikti. %95 dogruluk oraninda H0 kabul edildi
+# verilerimiz varyans homojenligi gosteriyor
+```
+```{r echo=TRUE}
+yil11 <- AlburyWeather[AlburyWeather$Year==2011,]
+yil12 <- AlburyWeather[AlburyWeather$Year==2012,]
+
+t.test(x = yil11$Temp3pm, y = yil12$Temp3pm, alternative = "two.sided")
+# H0: 2011 ve 2012 yillari arasindaki saat 3e ait sicaklik degerlerimin ortalamalari aynidir
+# Ha: 2011 ve 2012 yillari arasindaki saat 3e ait sicaklik degerlerimin ortalamalari farklidir
+# 2011 ile 2012 yillarina ait saat 3 sicaklik degerlerimin ortalamalari %95 dogruluk oraniyla ayni kabul edildi
+# p degerim 0.15. H0 kabul edildi
+```
+```{r echo=TRUE}
+# elimizdeki 2008 veri sayisi az oldugundan anova testi oncesi onu cikaralim
+library(tidyverse)
+alb <- AlburyWeather %>% filter(Year!=2008)
+anova_result <- aov(Temp3pm ~ Year, data = alb)
+summary(anova_result)
+TukeyHSD(anova_result)
+# gtum gruplarin birbirleriyle tek tek karsilastirilmasi icin olusturdugumuz anova testi ve test sonrasi sonuclarimizi inceliyoruz
+# yillar arasi sicaklik farkini ve ona bagli p degeri bize aciklayici ifadeler sunuyor.
+```
+
+```{r echo=TRUE}
+head(AlburyWeather)
+# makina ogrenmesi modeli olusturmak icin hani degiskenleri kullanmam gerektigi konusunda ufak goz gezdirmeler yapiyorum
+library(tidyverse)
+dataModel <- AlburyWeather %>% select(Temp3pm,MinTemp,MaxTemp,Rainfall,WindSpeed3pm,Humidity3pm)
+# bu verileri kullanmaya karar verdim. bu verileri kullanmama karar vermemde yukarida grafigini cizdigim kolerasyon istatistigi yardimci oldu
+head(dataModel)
+
+```
+
+```{r echo=TRUE}
+# modelimiz icin trainSet ve testSet olusturalim. bunlar icin oncelikle rastgele indexler secmemiz gerek
+
+set.seed(125)
+ind <- sample(1:nrow(dataModel), size = nrow(dataModel)*0.75)
+# verilerimin %75'ini modelimi egitmek icin %25'ini modelimi test etmek icin kullanacagim
+trainSet <- dataModel[ind,]
+testSet <- dataModel[-ind,]
+# train ve test verisetlerimizi olusturduk
+# oncelikle linear model kullanacagiz daha sonra ayni modeli MARS modeliyle olusturup modellerimizi karsilastiracagiz
+# Saat 3 sicaklik degerimiz uzerine bir model olusturalim
+# verilerim dogrusal dagildiklari icin linear model kullanacagim
+
+# Linear Model
+modelLM <- lm(Temp3pm ~ . , data = trainSet)
+summary(modelLM)
+# modelimizin genel sonuclari bu sekilde cikti
+# genel olarak iyi bir sonuc gibi gozukuyor.
+
+```
+
+```{r echo=TRUE}
+## tahmin islemini gerceklestirelim
+tahminLM <- predict(modelLM,testSet)
+head(tahminLM)
+# tahmin degerlerime ufak goz attik
+```
+
+```{r echo=TRUE}
+# modelimizi degerlendirelim
+library(caret)
+R2(tahminLM,testSet$Temp3pm)
+# R2 degerimiz 0.98 geldi cok iyi bir puan yakalamisiz bu da modelimizin dogrulugu konusunda guven veriyor
+# diger testlerimize bakalim
+```
+
+```{r echo=TRUE}
+RMSE(tahminLM,testSet$Temp3pm)
+# ortalama hatalarin kareler toplami 0.78 geldi
+# sicaklik verilerimi goz onune bulundurdugumda hatali sonuclarimin karelerinin ortalamasi 0.78 gelmis
+# bu da modelimin iyi bir is cikarttigini gosteriyor
+```
+```{r echo=TRUE}
+MAE(tahminLM,testSet$Temp3pm)
+# hatalarimin toplaminin ortalamasi 0.60 cikti
+# yine bu da tahminlerimdeki hatalarin ortalamasinin 1 derece dahi olmadigini gosteriyor
+# modelimiz guzel sonuclar vermis.
+
+# ayni modeli MARS yontemiyle de olusturup testlerimizi gerceklestirelim
+```
+
+```{r echo=TRUE}
+library(earth)
+modelMARS <- earth(Temp3pm ~ . , data = trainSet, penalty = 2, degree=2, nk=200,
+            nfold=10, keepxy=T)
+summary(modelMARS)
+# genel sonuclarimizda yine Rsq yani R2 degerimiz iyi gozukuyor
+# ancak model egitimlerinde sonuc iyi olsa da tahminlerde iyi cikmayabilir bu da modelimizde overfitting sorunu oldugunu gosterir
+# tahminler uzerinden yorumlarimiza bakalim
+```
+```{r}
+tahminMARS <- predict(modelMARS,testSet)
+head(tahminMARS)
+# tahmin degerlerime ufak goz atalim
+```
+```{r}
+# modelimizi degerlendirelim
+library(caret)
+R2(tahminMARS,testSet$Temp3pm)
+```
+```{r}
+RMSE(tahminMARS,testSet$Temp3pm)
+```
+```{r}
+MAE(tahminMARS,testSet$Temp3pm)
+```
+```{r}
+# modelimize ait sonuclar bu sekildedir. MARS yontemi linear veya non-linear bir cok model icin kullanisli, esnek ve ceza
+# parametrelerinin bulundugu bir modeldir. kullanimi gittikce yayginlastigindan dolayi burdaki linear verilerimde de denemek istedim.
+
+```
+
+bu projem buraya kadardi sonraki projelerimde gorusmek uzere

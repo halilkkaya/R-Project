@@ -1,0 +1,9 @@
+"0","which(is.na(AlburyWeather))"
+"1","integer(0)
+"
+"0","# NA olarak atanmis verilerimin Index numaralarina goz attim"
+"0","# Iki sekilde bu gozlemlerden kurtulabiliriz"
+"0",""
+"0","#Birinci Yontem"
+"0","index <- which(is.na(AlburyWeather))"
+"0","AlburyWeather[-index,]"

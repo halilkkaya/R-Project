@@ -65,11 +65,10 @@ Bu görselleştirmeler, verilerin daha iyi yorumlanmasına olanak tanır ve anal
 
 Bu projeyi çalıştırmak için aşağıdaki adımları takip edebilirsiniz:
 
-### 1. Depoyu Klonlayın
-
-İlk olarak, projeyi kendi yerel makinenize klonlayarak başlayın. Aşağıdaki komutla projeyi klonlayabilirsiniz:
-
 ```bash
+# Depoyu Klonlayın
+# İlk olarak, projeyi kendi yerel makinenize klonlayarak başlayın. Aşağıdaki komutla projeyi klonlayabilirsiniz:
+
 git clone https://github.com/halilkkaya/R-Project.git
 
 

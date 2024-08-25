@@ -1,9 +1,12 @@
 ---
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r}
-read.csv("/weaterAUS.csv")
+getwd()
+read.csv(file = "C:/Users/halil ibrahim kaya/Documents/GitHub/R-Project/weaterAUS/dataset/weatherAUS.csv", header = TRUE)
 ```
 
 ```{r echo=TRUE}
@@ -11,10 +14,9 @@ read.csv("/weaterAUS.csv")
 library(tidyverse)
 # Sadece tek bir konum icin analiz yapalim
 AlburyWeather <- weatherAUS %>% filter(Location=="Albury")
-View(AlburyWeather)
 # Analiz ve tahmin icin gerekli verilerimizi seciyoruz
 AlburyWeather <- AlburyWeather %>% select(Temp3pm,MinTemp,MaxTemp,Rainfall,WindSpeed3pm,Humidity3pm,Pressure3pm,Date)
-AlburyWeather
+head(AlburyWeather)
 ```
 
 

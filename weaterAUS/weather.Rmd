@@ -1,12 +1,16 @@
 ---
 output:
+  word_document:
+    toc: true
+  pdf_document:
+    toc: true
+    fig_caption: true
   html_document: default
-  pdf_document: default
 ---
 
 ```{r}
-getwd()
-read.csv(file = "C:/Users/halil ibrahim kaya/Documents/GitHub/R-Project/weaterAUS/dataset/weatherAUS.csv", header = TRUE)
+weatherAUS <- read.csv(file = "C:/Users/halil ibrahim kaya/Documents/GitHub/R-Project/weaterAUS/dataset/weatherAUS.csv", header = TRUE)
+
 ```
 
 ```{r echo=TRUE}
@@ -21,7 +25,7 @@ head(AlburyWeather)
 
 
 
-```{r echo=TRUE}
+```{r echo=TRUE, warning=FALSE}
 # Eksik veri kontrolu yapalim
 library(mice)
 md.pattern(AlburyWeather)
@@ -30,19 +34,20 @@ md.pattern(AlburyWeather)
 
 
 ```{r echo=TRUE}
-which(is.na(AlburyWeather))
+head(which(is.na(AlburyWeather)))
 # NA olarak atanmis verilerimin Index numaralarina goz attim
 # Iki sekilde bu gozlemlerden kurtulabiliriz
 
+
 #Birinci Yontem
 index <- which(is.na(AlburyWeather))
-AlburyWeather[-index,]
+head(AlburyWeather[-index,])
 ```
 
 
 ```{r echo=TRUE}
 # Ikinci Yontem
-na.omit(AlburyWeather)
+head(na.omit(AlburyWeather))
 # Bu yontemi kullanarak NA iceren tum satiri atiyoruz. Bu yontemi kullanalim
 AlburyWeather <- na.omit(AlburyWeather)
 head(AlburyWeather)
@@ -85,7 +90,7 @@ plot(y=AlburyWeather$Temp3pm,x=AlburyWeather$Year, main =  "Tarihlere Gore Hava 
 # verilerimizin yillara gore sicaklik aralşklarini incelemek icin Year degiskenimizle bir plot cizdirdik
 ```
 
-```{r echo=TRUE}
+```{r echo=TRUE, message=TRUE, warning=FALSE}
 library(GGally)
 # Albury sehrine ait verileri aciklayici olarak gorsellestiren bir fonksiyonumuz:
 ggpairs(AlburyWeather,columns = 1:7)
